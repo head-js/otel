@@ -1,34 +1,38 @@
 {
   "name": "@head-js-o11y/analytics-plugin-datadogcom",
-  "version": "0.0.1",
+  "version": "5.35.0-1",
   "description": "",
   "main": "index.js",
+  "type": "module",
   "browser": ".dist/analytics-plugin-datadogcom.js",
   "scripts": {
     "build": "rollup --config",
-    "dist": "terser --mangle --compress --comments false --timings --output .dist/analytics-plugin-datadogcom.min.js .dist/analytics-plugin-datadogcom.js"
+    "dist": "terser --mangle --compress --comments false --timings --output dist/analytics-plugin-datadogcom.min.js dist/analytics-plugin-datadogcom.js"
   },
   "license": "MIT",
   "dependencies": {
-    "@datadog/browser-logs": "4.21.2",
-    "@datadog/browser-rum": "4.21.2"
+    "@datadog/browser-core": "5.35.0",
+    "@datadog/browser-logs": "5.35.0",
+    "@datadog/browser-rum": "5.35.0",
+    "@datadog/browser-rum-core": "5.35.0"
   },
   "devDependencies": {
-    "@babel/core": "7.12.17",
-    "@babel/eslint-parser": "7.12.17",
-    "@babel/preset-env": "7.12.17",
-    "@rollup/plugin-babel": "5.3.1",
-    "@rollup/plugin-commonjs": "21.0.3",
-    "@rollup/plugin-eslint": "8.0.1",
-    "@rollup/plugin-json": "4.1.0",
-    "@rollup/plugin-node-resolve": "13.1.3",
-    "@rollup/plugin-typescript": "8.2.5",
+    "@babel/core": "7.24.9",
+    "@babel/eslint-parser": "7.24.8",
+    "@babel/preset-env": "7.24.8",
+    "@rollup/plugin-babel": "6.0.3",
+    "@rollup/plugin-commonjs": "23.0.7",
+    "@rollup/plugin-eslint": "9.0.4",
+    "@rollup/plugin-json": "5.0.2",
+    "@rollup/plugin-node-resolve": "15.0.2",
+    "@rollup/plugin-terser": "0.2.1",
+    "@rollup/plugin-typescript": "10.0.1",
     "eslint": "7.32.0",
     "eslint-config-airbnb": "18.2.0",
-    "rollup": "2.60.2",
-    "terser": "5.5.1",
+    "rollup": "3.12.1",
+    "terser": "5.15.1",
     "tslib": "2.3.1",
-    "typescript": "4.0.8",
-    "vanilla.js": "0.2.7"
+    "typescript": "4.8.4",
+    "vanilla.js": "0.2.11"
   }
 }

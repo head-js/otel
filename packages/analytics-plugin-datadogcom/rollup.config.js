@@ -4,6 +4,7 @@ import resolve from '@rollup/plugin-node-resolve';
 import commonjs from '@rollup/plugin-commonjs';
 import typescript from '@rollup/plugin-typescript';
 // import babel from '@rollup/plugin-babel';
+import terser from '@rollup/plugin-terser';
 
 
 export default [
@@ -34,10 +35,19 @@ export default [
       //   exclude: 'node_modules/**',
       //   babelHelpers: 'bundled',
       // }),
+
+      terser({
+        compress: false,
+        mangle: false,
+        format: {
+          comments: false,
+          beautify: true,
+        },
+      }),
     ],
 
     output: [
-      { file: '.dist/analytics-plugin-datadogcom.js', format: 'iife', name: 'AnalyticsPluginDatadogcom' },
+      { file: 'dist/analytics-plugin-datadogcom.js', format: 'iife', name: 'AnalyticsPluginDatadogcom' },
     ],
   },
 ];

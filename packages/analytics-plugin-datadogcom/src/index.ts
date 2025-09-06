@@ -2,17 +2,17 @@ import { datadogRum } from '@datadog/browser-rum';
 
 
 export default function datadog(
-  analytics: any,
+  // analytics: any,
   settings?: any,
-  integrations?: any
+  // integrations?: any
 ): any {
   const defaultOptions = {
   };
 
   const uniOptions = {
-    service: analytics.settings.app.service,
-    version: analytics.settings.app.version,
-    env: analytics.settings.app.profile,
+    service: settings.app.service,
+    version: settings.app.version,
+    env: settings.app.profile,
   };
 
   const sdkOptions = {
@@ -21,7 +21,7 @@ export default function datadog(
     site: settings.endpoint,
   };
 
-  const rumOptions = { ...analytics.settings.rum };
+  const rumOptions = { ...settings.rum };
 
   if (rumOptions.beforeSend) {
     // @ts-ignore
@@ -75,7 +75,7 @@ export default function datadog(
   const plugin: any = {
     name: 'Datadog.com',
     type: 'destination',
-    version: '4.21.2-1',
+    version: '5.35.0-1',
     isLoaded: (): boolean => true,
     load: (): Promise<void> => Promise.resolve(),
     track: addAction,
