@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Cache-Control" content="no-cache" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1,minimum-scale=1,user-scalable=no" />
+    <link rel="icon" href="/rsrc/img/favicon.ico" />
+
+    <title>@head.js/analytics-snippet</title>
+
+    <script id="head-js">
+    /* @head.js/snippet-init 0.4.0 */
+    var head=function(){"use strict";return{}}();
+    /* @head.js/snippet-env 0.4.0 */
+    this.head=this.head||{},this.head.env=function(){"use strict";var _={mode:"{{ __mode__ }}",profile:"{{ __profile__ }}",
+    version:"{{ __version__ }}",agent:"{{ __agent__ }}",context:"{{ __context__ }}"};return _}();
+    /* @head.js/snippet-profile 0.4.0 */
+    this.head=this.head||{},this.head.profile=function(){"use strict";return"{{ __profile_vars__ }}"}();
+    </script>
+    <script>
+    var __segmentioconfig__ = {
+      "writeKey": "GW4vMpvTuG8m29dHAj1K1udTScVuDoAa",
+      "loader": "http://127.0.0.1:8000/rsrc/.dist/analytics.js",
+      "cdn": "http://127.0.0.1:8000/rsrc/.dist/"
+    };
+    var __heado11yconfig__ = {
+      "providers": [
+        { "name": "Console", "settings": { "id": "snippet", "token": "0.7ktlvp5kwvb", "env": "test", "version": "0.0.3" } },
+        { "name": "Sendbeacon", "settings": { "endpoint": "https://open-api.bo7.co/collect/collect" } },
+        { "name": "Guancecom", "settings": { "id": "snippet", "endpoint": "https://api.lisitede.com" }},
+        { "name": "Datadogcom", "settings": { "id": "snippet", "token": "0.7ktlvp5kwvb", "env": "test", "version": "0.0.3", "endpoint": "datadog.com" } },
+        // {"name":"Segmentio","settings":{"endpoint":"https://api.segment.io/v1","token":"GW4vMpvTuG8m29dHAj1K1udTScVuDoAa"}}
+      ],
+      "rum.denyResourceOrigins": [ "/v1/write/rum" ]
+    };
+    /* @head.js/analytics-snippet 0.0.3 */
+    !function(){"use strict";var e=__segmentioconfig__,n=__heado11yconfig__,t={analyticsNextEnabled:!0,
+    integrations:{"Actions Google Analytic 4":{versionSettings:{componentTypes:["browser"],version:""}},"Segment.io":{
+    apiKey:e.writeKey,unbundledIntegrations:[],addBundledMetadata:!0,maybeBundledConfigIds:{},versionSettings:{
+    componentTypes:["browser"],version:"4.4.7"}}},remotePlugins:n.providers,metrics:{sampleRate:1},plan:{track:{__default:{
+    enabled:!0,integrations:{}}},identify:{__default:{enabled:!0}},group:{__default:{enabled:!0}}},edgeFunction:{},
+    middlewareSettings:{},enabledMiddleware:{},legacyVideoPluginsEnabled:!0},i=window.analytics=window.analytics||[]
+    ;if(!i.initialize)if(i.invoked)window.console&&console.error&&console.error("Segment snippet included twice.");else{
+    i.invoked=!0,i.methods=["identify","track","ready","page"],i.factory=function(e){return function(){
+    var n=Array.prototype.slice.call(arguments);return n.unshift(e),i.push(n),i}};for(var r=0;r<i.methods.length;r++){
+    var o=i.methods[r];i[o]=i.factory(o)}i.load=function(n,t){var i=document.createElement("script")
+    ;i.type="text/javascript",i.async=!0,i.src=e.loader;var r=document.getElementsByTagName("script")[0]
+    ;r.parentNode.insertBefore(i,r)},i.SNIPPET_VERSION="4.13.1";var a={cdnSettings:t,writeKey:e.writeKey,cdnURL:e.cdn,app:{
+    profile:head.env.profile,version:head.env.version},rum:{denyResourceOrigins:n["rum.denyResourceOrigins"]}},d={}
+    ;i._writeKey=e.writeKey,i._loadSettings=a,i._loadOptions=d,i.load(a,d),i.page()}}();
+    </script>
+  </head>
+
+  <body>
+
+    <div className="flex flex-row">
+      <div id="root" class="App flex-1 pt-4" data-pathname="/"></div>
+    </div>
+
+    <script>
+
+    </script>
+  </body>
+</html>

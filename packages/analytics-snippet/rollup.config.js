@@ -12,8 +12,6 @@ export default [
 
     external: [
       'core-js/modules/es.array.slice.js',
-      'core-js/modules/es.object.to-string.js',
-      'core-js/modules/es.promise.js',
     ],
 
     plugins: [
@@ -42,7 +40,7 @@ export default [
     ],
 
     output: [
-      { file: '.dist/analytics-snippet.js', format: 'iife', name: 'AnalyticsSnippet' },
+      { file: 'dist/analytics-snippet.js', format: 'iife', name: 'AnalyticsSnippet' },
     ],
   },
 ];
