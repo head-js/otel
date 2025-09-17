@@ -91,7 +91,7 @@ export default function guancecom(
   const guancecom: any = {
     name: 'Guance.com',
     type: 'destination',
-    version: '3.2.24-1',
+    version: '3.2.24-3',
     isLoaded: (): boolean => true,
     load: (): Promise<void> => Promise.resolve(),
     track: addAction,
