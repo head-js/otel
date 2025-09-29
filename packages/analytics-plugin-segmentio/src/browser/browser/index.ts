@@ -2,22 +2,21 @@
 // import { /* getCDN */ setGlobalCDNUrl } from '../lib/parse-cdn'
 
 // import { fetch } from '../lib/fetch'
-import { /* Analytics, */ AnalyticsSettings /*, InitOptions */ } from '../core/analytics'
+// import { Analytics, AnalyticsSettings, /* NullAnalytics, */ InitOptions } from '../core/analytics'
 // import { Context } from '../core/context'
 // import { Plan } from '../core/events'
-// import { Plugin } from '../core/plugin'
+import { Plugin } from '../core/plugin'
 // import { MetricsOptions } from '../core/stats/remote-metrics'
 // import { mergedOptions } from '../lib/merged-options'
-// import { createDeferred } from '../lib/create-deferred'
+// import { createDeferred } from '@segment/analytics-generic-utils'
 // import { envEnrichment } from '../plugins/env-enrichment'
-// import {
-//   PluginFactory,
-//   remoteLoader,
-//   RemotePlugin,
-// } from '../plugins/remote-loader'
+import {
+  PluginFactory,
+  // remoteLoader,
+  // RemotePlugin,
+} from '../plugins/remote-loader'
 // import type { RoutingRule } from '../plugins/routing-middleware'
 // import { segmentio, SegmentioSettings } from '../plugins/segmentio'
-// import { validation } from '../plugins/validation'
 // import {
 //   AnalyticsBuffered,
 //   PreInitMethodCallBuffer,
@@ -25,23 +24,29 @@ import { /* Analytics, */ AnalyticsSettings /*, InitOptions */ } from '../core/a
 //   flushAddSourceMiddleware,
 //   flushSetAnonymousID,
 //   flushOn,
+//   PreInitMethodCall,
+//   flushRegister,
 // } from '../core/buffer'
 // import { ClassicIntegrationSource } from '../plugins/ajs-destination/types'
 // import { attachInspector } from '../core/inspector'
 // import { Stats } from '../core/stats'
 // import { setGlobalAnalyticsKey } from '../lib/global-analytics-helper'
 
-export interface LegacyIntegrationConfiguration {
-//   /* @deprecated - This does not indicate browser types anymore */
-//   type?: string
+export interface RemoteIntegrationSettings {
+  /* @deprecated - This does not indicate browser types anymore */
+  // type?: string
 
-//   versionSettings?: {
-//     version?: string
-//     override?: string
-//     componentTypes?: Array<'browser' | 'android' | 'ios' | 'server'>
-//   }
+  // versionSettings?: {
+  //   version?: string
+  //   override?: string
+  //   componentTypes?: ('browser' | 'android' | 'ios' | 'server')[]
+  // }
 
-//   bundlingStatus?: string
+  /**
+   * We know if an integration is device mode if it has `bundlingStatus: 'bundled'` and the `browser` componentType in `versionSettings`.
+   * History: The term 'bundle' is left over from before action destinations, when a device mode destinations were 'bundled' in a custom bundle for every analytics.js source.
+   */
+  // bundlingStatus?: 'bundled' | 'unbundled'
 
   /**
    * Consent settings for the integration
@@ -49,7 +54,7 @@ export interface LegacyIntegrationConfiguration {
   consentSettings?: {
     /**
      * Consent categories for the integration
-     * @example ["Analytics", "Advertising", "CAT001"]
+     * @example ["CAT001", "CAT002"]
      */
     categories: string[]
   }
@@ -62,56 +67,90 @@ export interface LegacyIntegrationConfiguration {
   [key: string]: any
 }
 
-export interface LegacySettings {
+/**
+ * The remote settings object for a source, typically fetched from the Segment CDN.
+ * Warning: this is an *unstable* object.
+ */
+export interface CDNSettings {
   integrations: {
-    [name: string]: LegacyIntegrationConfiguration
+    [creationName: string]: RemoteIntegrationSettings
   }
 
-//   middlewareSettings?: {
-//     routingRules: RoutingRule[]
-//   }
+  // middlewareSettings?: {
+  //   routingRules: RoutingRule[]
+  // }
 
-//   enabledMiddleware?: Record<string, boolean>
-//   metrics?: MetricsOptions
+  // enabledMiddleware?: Record<string, boolean>
+  // metrics?: MetricsOptions
 
-// //   plan?: Plan
+  // plan?: Plan
 
-//   legacyVideoPluginsEnabled?: boolean
+  // legacyVideoPluginsEnabled?: boolean
 
-//   remotePlugins?: RemotePlugin[]
+  // remotePlugins?: RemotePlugin[]
 
   /**
    * Top level consent settings
    */
-  consentSettings?: {
-    /**
-     * All unique consent categories.
-     * There can be categories in this array that are important for consent that are not included in any integration  (e.g. 2 cloud mode categories).
-     * @example ["Analytics", "Advertising", "CAT001"]
-     */
-    allCategories: string[]
-  }
+  // consentSettings?: {
+  //   /**
+  //    * All unique consent categories for enabled destinations.
+  //    * There can be categories in this array that are important for consent that are not included in any integration  (e.g. 2 cloud mode categories).
+  //    * @example ["Analytics", "Advertising", "CAT001"]
+  //    */
+  //   allCategories: string[]
+
+  //   /**
+  //    * Whether or not there are any unmapped destinations for enabled destinations.
+  //    */
+  //   hasUnmappedDestinations: boolean
+  // }
+
+  /**
+   * Settings for edge function. Used for signals.
+   */
+  // edgeFunction?: // this is technically non-nullable according to ajs-renderer atm, but making it optional because it's strange API choice, and we might want to change it.
+  // | {
+  //       /**
+  //        * The URL of the edge function (.js file).
+  //        * @example 'https://cdn.edgefn.segment.com/MY-WRITEKEY/foo.js',
+  //        */
+  //       downloadURL: string
+  //       /**
+  //        * The version of the edge function
+  //        * @example 1
+  //        */
+  //       version: number
+  //     }
+  //   | {}
 }
 
-export interface AnalyticsBrowserSettings extends AnalyticsSettings {
+export interface AnalyticsBrowserSettings {
+  writeKey: string
   /**
    * The settings for the Segment Source.
    * If provided, `AnalyticsBrowser` will not fetch remote settings
    * for the source.
    */
-  cdnSettings?: LegacySettings & Record<string, unknown>
+  cdnSettings?: CDNSettings & Record<string, unknown>
   /**
    * If provided, will override the default Segment CDN (https://cdn.segment.com) for this application.
    */
   cdnURL?: string
+  /**
+   * Plugins or npm-installed action destinations
+   */
+  plugins?: (Plugin | PluginFactory)[]
+  /**
+   * npm-installed classic destinations
+   */
+  // classicIntegrations?: ClassicIntegrationSource[]
 }
 
-// export function loadLegacySettings(
+// export function loadCDNSettings(
 //   writeKey: string,
-//   cdnURL?: string
-// ): Promise<LegacySettings> {
-//   const baseUrl = cdnURL ?? getCDN()
-
+//   baseUrl: string
+// ): Promise<CDNSettings> {
 //   return fetch(`${baseUrl}/v1/projects/${writeKey}/settings`)
 //     .then((res) => {
 //       if (!res.ok) {
@@ -127,7 +166,7 @@ export interface AnalyticsBrowserSettings extends AnalyticsSettings {
 //     })
 // }
 
-// function hasLegacyDestinations(settings: LegacySettings): boolean {
+// function hasLegacyDestinations(settings: CDNSettings): boolean {
 //   return (
 //     getProcessEnv().NODE_ENV !== 'test' &&
 //     // just one integration means segmentio
@@ -135,7 +174,7 @@ export interface AnalyticsBrowserSettings extends AnalyticsSettings {
 //   )
 // }
 
-// function hasTsubMiddleware(settings: LegacySettings): boolean {
+// function hasTsubMiddleware(settings: CDNSettings): boolean {
 //   return (
 //     getProcessEnv().NODE_ENV !== 'test' &&
 //     (settings.middlewareSettings?.routingRules?.length ?? 0) > 0
@@ -169,20 +208,19 @@ export interface AnalyticsBrowserSettings extends AnalyticsSettings {
 //   // analytics calls during async function calls.
 //   await flushAddSourceMiddleware(analytics, buffer)
 //   flushAnalyticsCallsInNewTask(analytics, buffer)
-//   // Clear buffer, just in case analytics is loaded twice; we don't want to fire events off again.
-//   buffer.clear()
 // }
 
 // async function registerPlugins(
-//   // @ts-ignore
-//   writeKey: string,
-//   legacySettings: LegacySettings,
+//   loadSettings: AnalyticsSettings,
+//   cdnSettings: CDNSettings,
 //   analytics: Analytics,
 //   options: InitOptions,
 //   pluginLikes: (Plugin | PluginFactory)[] = [],
-//   // legacyIntegrationSources: ClassicIntegrationSource[]
+//   // legacyIntegrationSources: ClassicIntegrationSource[],
+//   preInitBuffer: PreInitMethodCallBuffer
 // ): Promise<Context> {
-//   const plugins = pluginLikes?.filter(
+//   flushPreBuffer(analytics, preInitBuffer)
+//   const pluginsFromSettings = pluginLikes?.filter(
 //     (pluginLike) => typeof pluginLike === 'object'
 //   ) as Plugin[]
 
@@ -192,33 +230,31 @@ export interface AnalyticsBrowserSettings extends AnalyticsSettings {
 //   //     typeof pluginLike.pluginName === 'string'
 //   // ) as PluginFactory[]
 
-//   // const tsubMiddleware = hasTsubMiddleware(legacySettings)
+//   // const tsubMiddleware = hasTsubMiddleware(cdnSettings)
 //   //   ? await import(
 //   //       /* webpackChunkName: "tsub-middleware" */ '../plugins/routing-middleware'
 //   //     ).then((mod) => {
-//   //       return mod.tsubMiddleware(
-//   //         legacySettings.middlewareSettings!.routingRules
-//   //       )
+//   //       return mod.tsubMiddleware(cdnSettings.middlewareSettings!.routingRules)
 //   //     })
 //   //   : undefined
 
 //   // const legacyDestinations =
-//   //   hasLegacyDestinations(legacySettings) || legacyIntegrationSources.length > 0
+//   //   hasLegacyDestinations(cdnSettings) || legacyIntegrationSources.length > 0
 //   //     ? await import(
 //   //         /* webpackChunkName: "ajs-destination" */ '../plugins/ajs-destination'
 //   //       ).then((mod) => {
 //   //         return mod.ajsDestinations(
 //   //           writeKey,
-//   //           legacySettings,
+//   //           cdnSettings,
 //   //           analytics.integrations,
-//   //           opts,
+//   //           options,
 //   //           tsubMiddleware,
 //   //           legacyIntegrationSources
 //   //         )
 //   //       })
 //   //     : []
 
-//   // if (legacySettings.legacyVideoPluginsEnabled) {
+//   // if (cdnSettings.legacyVideoPluginsEnabled) {
 //   //   await import(
 //   //     /* webpackChunkName: "legacyVideos" */ '../plugins/legacy-video-plugins'
 //   //   ).then((mod) => {
@@ -226,55 +262,67 @@ export interface AnalyticsBrowserSettings extends AnalyticsSettings {
 //   //   })
 //   // }
 
-//   // const schemaFilter = opts.plan?.track
+//   // const schemaFilter = options.plan?.track
 //   //   ? await import(
 //   //       /* webpackChunkName: "schemaFilter" */ '../plugins/schema-filter'
 //   //     ).then((mod) => {
-//   //       return mod.schemaFilter(opts.plan?.track, legacySettings)
+//   //       return mod.schemaFilter(options.plan?.track, cdnSettings)
 //   //     })
 //   //   : undefined
 
-//   const mergedSettings = mergedOptions(legacySettings, options)
+//   const mergedSettings = mergedOptions(cdnSettings, options)
 //   const remotePlugins = await remoteLoader(
-//     analytics,
-//     legacySettings,
+//     loadSettings,
+//     cdnSettings,
 //     // analytics.integrations,
 //     mergedSettings,
-//     // options.obfuscate,
+//     // options,
 //     // undefined, // tsubMiddleware
 //     // pluginSources
 //   ).catch(() => [])
 
-//   const toRegister = [
-//     validation,
+//   const basePlugins = [
 //     envEnrichment,
-//     ...plugins,
 //     // ...legacyDestinations,
 //     ...remotePlugins,
 //   ]
 
 //   // if (schemaFilter) {
-//   //   toRegister.push(schemaFilter)
+//   //   basePlugins.push(schemaFilter)
 //   // }
 
 //   // const shouldIgnoreSegmentio =
-//   //   (opts.integrations?.All === false && !opts.integrations['Segment.io']) ||
-//   //   (opts.integrations && opts.integrations['Segment.io'] === false)
+//   //   (options.integrations?.All === false &&
+//   //     !options.integrations['Segment.io']) ||
+//   //   (options.integrations && options.integrations['Segment.io'] === false)
+
+//   // const shouldIgnoreSegmentio =
+//   //   (options.integrations?.All === false &&
+//   //     !options.integrations['Segment.io']) ||
+//   //   (options.integrations && options.integrations['Segment.io'] === false)
 
 //   // if (!shouldIgnoreSegmentio) {
-//   //   toRegister.push(
+//   //   basePlugins.push(
 //   //     await segmentio(
 //   //       analytics,
 //   //       mergedSettings['Segment.io'] as SegmentioSettings,
-//   //       legacySettings.integrations
+//   //       cdnSettings.integrations
 //   //     )
 //   //   )
 //   // }
 
-//   const ctx = await analytics.register(...toRegister)
+//   // order is important here, (for example, if there are multiple enrichment plugins, the last registered plugin will have access to the last context.)
+//   const ctx = await analytics.register(
+//     // register 'core' plugins and those via destinations
+//     ...basePlugins,
+//     // register user-defined plugins passed into AnalyticsBrowser.load({ plugins: [plugin1, plugin2] }) -- relevant to npm-only
+//     ...pluginsFromSettings
+//   )
+//   // register user-defined plugins registered via analytics.register()
+//   await flushRegister(analytics, preInitBuffer)
 
 //   // if (
-//   //   Object.entries(legacySettings.enabledMiddleware ?? {}).some(
+//   //   Object.entries(cdnSettings.enabledMiddleware ?? {}).some(
 //   //     ([, enabled]) => enabled
 //   //   )
 //   // ) {
@@ -283,7 +331,7 @@ export interface AnalyticsBrowserSettings extends AnalyticsSettings {
 //   //   ).then(async ({ remoteMiddlewares }) => {
 //   //     const middleware = await remoteMiddlewares(
 //   //       ctx,
-//   //       legacySettings,
+//   //       cdnSettings,
 //   //       options.obfuscate
 //   //     )
 //   //     const promises = middleware.map((mdw) =>
@@ -297,47 +345,76 @@ export interface AnalyticsBrowserSettings extends AnalyticsSettings {
 // }
 
 // async function loadAnalytics(
-//   settings: AnalyticsBrowserSettings,
+//   settings: AnalyticsSettings,
 //   options: InitOptions = {},
 //   preInitBuffer: PreInitMethodCallBuffer
 // ): Promise<[Analytics, Context]> {
+//   // return no-op analytics instance if disabled
+//   // if (options.disable === true) {
+//   //   return [new NullAnalytics(), Context.system()]
+//   // }
+
 //   if (options.globalAnalyticsKey)
 //     setGlobalAnalyticsKey(options.globalAnalyticsKey)
 //   // this is an ugly side-effect, but it's for the benefits of the plugins that get their cdn via getCDN()
 //   if (settings.cdnURL) setGlobalCDNUrl(settings.cdnURL)
 
-//   // let legacySettings =
-//   //   settings.cdnSettings ??
-//   //   (await loadLegacySettings(settings.writeKey, settings.cdnURL))
-//   let legacySettings = settings.cdnSettings!;
+//   if (options.initialPageview) {
+//     // capture the page context early, so it's always up-to-date
+//     preInitBuffer.add(new PreInitMethodCall('page', []))
+//   }
+
+//   let cdnSettings = settings.cdnSettings!;
+//   // const cdnURL = settings.cdnURL ?? getCDN()
+//   // let cdnSettings =
+//   //   settings.cdnSettings ?? (await loadCDNSettings(settings.writeKey, cdnURL))
 
 //   // if (options.updateCDNSettings) {
-//   //   legacySettings = options.updateCDNSettings(legacySettings)
+//   //   cdnSettings = options.updateCDNSettings(cdnSettings)
+//   // }
+
+//   // if options.disable is a function, we allow user to disable analytics based on CDN Settings
+//   // if (typeof options.disable === 'function') {
+//   //   const disabled = await options.disable(cdnSettings)
+//   //   if (disabled) {
+//   //     return [new NullAnalytics(), Context.system()]
+//   //   }
 //   // }
 
 //   const retryQueue: boolean =
-//     legacySettings.integrations['Segment.io']?.retryQueue ?? true
+//     cdnSettings.integrations['Segment.io']?.retryQueue ?? true
 
-//   const opts: InitOptions = { retryQueue, ...options }
-//   const analytics = new Analytics(settings, opts)
+//   options = {
+//     retryQueue,
+//     ...options,
+//   }
+
+//   const analytics = new Analytics({ ...settings, cdnSettings, cdnURL: settings.cdnURL }, options)
 
 //   attachInspector(analytics)
 
 //   const plugins = settings.plugins ?? []
 
 //   // const classicIntegrations = settings.classicIntegrations ?? []
-//   Stats.initRemoteMetrics(legacySettings.metrics)
 
-//   // needs to be flushed before plugins are registered
-//   flushPreBuffer(analytics, preInitBuffer)
+//   // const segmentLoadOptions = options.integrations?.['Segment.io'] as
+//   //   | SegmentioSettings
+//   //   | undefined
+
+//   // Stats.initRemoteMetrics({
+//   //   ...cdnSettings.metrics,
+//   //   host: segmentLoadOptions?.apiHost ?? cdnSettings.metrics?.host,
+//   //   protocol: segmentLoadOptions?.protocol,
+//   // })
 
 //   const ctx = await registerPlugins(
-//     settings.writeKey,
-//     legacySettings,
+//     settings,
+//     cdnSettings,
 //     analytics,
 //     options,
 //     plugins,
-//     // classicIntegrations
+//     // classicIntegrations,
+//     preInitBuffer
 //   )
 
 //   // const search = window.location.search ?? ''
@@ -351,10 +428,6 @@ export interface AnalyticsBrowserSettings extends AnalyticsSettings {
 
 //   analytics.initialized = true
 //   analytics.emit('initialize', settings, options)
-
-//   if (options.initialPageview) {
-//     analytics.page().catch(console.error)
-//   }
 
 //   await flushFinalBuffer(analytics, preInitBuffer)
 
@@ -373,7 +446,7 @@ export interface AnalyticsBrowserSettings extends AnalyticsSettings {
  */
 // export class AnalyticsBrowser extends AnalyticsBuffered {
 //   private _resolveLoadStart: (
-//     settings: AnalyticsBrowserSettings,
+//     settings: AnalyticsSettings,
 //     options: InitOptions
 //   ) => void
 
@@ -408,7 +481,7 @@ export interface AnalyticsBrowserSettings extends AnalyticsSettings {
 //    * ```
 //    */
 //   load(
-//     settings: AnalyticsBrowserSettings,
+//     settings: AnalyticsSettings,
 //     options: InitOptions = {}
 //   ): AnalyticsBrowser {
 //     this._resolveLoadStart(settings, options)
@@ -427,14 +500,14 @@ export interface AnalyticsBrowserSettings extends AnalyticsSettings {
 //    * ```
 //    */
 //   static load(
-//     settings: AnalyticsBrowserSettings,
+//     settings: AnalyticsSettings,
 //     options: InitOptions = {}
 //   ): AnalyticsBrowser {
 //     return new AnalyticsBrowser().load(settings, options)
 //   }
 
 //   static standalone(
-//     settings: AnalyticsBrowserSettings,
+//     settings: AnalyticsSettings,
 //     options?: InitOptions
 //   ): Promise<Analytics> {
 //     return AnalyticsBrowser.load(settings, options).then((res) => res[0])

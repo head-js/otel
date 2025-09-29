@@ -1,6 +1,6 @@
 // import { Facade } from '@head.js/analytics.js-facade'
 // import { Analytics } from '../../core/analytics'
-// import { LegacySettings } from '../../browser'
+// import { CDNSettings } from '../../browser'
 // import { isOffline } from '../../core/connection'
 import { Context } from '../../core/context'
 import { Plugin } from '../../core/plugin'
@@ -8,7 +8,7 @@ import { Plugin } from '../../core/plugin'
 // import { PersistedPriorityQueue } from '../../lib/priority-queue/persisted'
 import { toFacade } from '../../lib/to-facade'
 // import batch, { BatchingDispatchConfig } from './batched-dispatcher'
-import standard /*, { StandardDispatcherConfig }*/ from './fetch-dispatcher'
+import standard /*, { StandardDispatcherConfig } */ from './fetch-dispatcher'
 import { normalize } from './normalize'
 // import { scheduleFlush } from './schedule-flush'
 import { SEGMENT_API_HOST } from '../../core/constants'
@@ -124,8 +124,14 @@ export default async function segmentio(
         normalize(json, settings)
       )
       .then(() => ctx)
-      // .catch(() => {
-      //   buffer.pushWithBackoff(ctx)
+      // .catch((error) => {
+      //   ctx.log('error', 'Error sending event', error)
+      //   if (error.name === 'RateLimitError') {
+      //     const timeout = error.retryTimeout
+      //     buffer.pushWithBackoff(ctx, timeout)
+      //   } else {
+      //     buffer.pushWithBackoff(ctx)
+      //   }
       //   // eslint-disable-next-line @typescript-eslint/no-use-before-define
       //   scheduleFlush(flushing, buffer, segmentio, scheduleFlush)
       //   return ctx

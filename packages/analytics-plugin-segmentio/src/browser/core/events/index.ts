@@ -1,6 +1,5 @@
 // import { v4 as uuid } from '@lukeed/uuid'
-// import { dset } from 'dset'
-// import { User } from '../user'
+// import { /* ID, */ User } from '../user'
 // import {
 //   Options,
 //   Integrations,
@@ -8,35 +7,61 @@
 //   // Traits,
 //   SegmentEvent,
 // } from './interfaces'
-// import md5 from 'spark-md5'
 // import { addPageContext, PageContext } from '../page'
+// import { CoreEventFactory } from '@segment/analytics-core'
 
 export * from './interfaces'
 
-// export class EventFactory {
-//   constructor(public user: User) {}
+// export class EventFactory extends CoreEventFactory {
+//   user: User
+//   constructor(user: User) {
+//     super({
+//       createMessageId: () => `ajs-next-${Date.now()}-${uuid()}`,
+//       onEventMethodCall: ({ options }) => {
+//         this.maybeUpdateAnonId(options)
+//       },
+//       onFinishedEvent: (event) => {
+//         this.addIdentity(event)
+//         return event
+//       },
+//     })
+//     this.user = user
+//   }
 
-//   track(
+//   /**
+//    * Updates the anonymousId *globally* if it's provided in the options.
+//    * This should generally be done in the identify method, but some customers rely on this.
+//    */
+//   private maybeUpdateAnonId(options: Options | undefined): void {
+//     options?.anonymousId && this.user.anonymousId(options.anonymousId)
+//   }
+
+//   /**
+//    * add user id / anonymous id to the event
+//    */
+//   private addIdentity(event: SegmentEvent) {
+//     if (this.user.id()) {
+//       event.userId = this.user.id()
+//     }
+
+//     if (this.user.anonymousId()) {
+//       event.anonymousId = this.user.anonymousId()
+//     }
+//   }
+
+//   override track(
 //     event: string,
 //     properties?: EventProperties,
 //     options?: Options,
 //     globalIntegrations?: Integrations,
 //     pageCtx?: PageContext
 //   ): SegmentEvent {
-//     return this.normalize(
-//       {
-//         ...this.baseEvent(),
-//         event,
-//         type: 'track' as const,
-//         properties,
-//         options: { ...options },
-//         integrations: { ...globalIntegrations },
-//       },
-//       pageCtx
-//     )
+//     const ev = super.track(event, properties, options, globalIntegrations)
+//     addPageContext(ev, pageCtx)
+//     return ev
 //   }
 
-//   page(
+//   override page(
 //     category: string | null,
 //     page: string | null,
 //     properties?: EventProperties,
@@ -44,140 +69,70 @@ export * from './interfaces'
 //     globalIntegrations?: Integrations,
 //     pageCtx?: PageContext
 //   ): SegmentEvent {
-//     const event: Partial<SegmentEvent> = {
-//       type: 'page' as const,
-//       properties: { ...properties },
-//       options: { ...options },
-//       integrations: { ...globalIntegrations },
-//     }
-
-//     if (category !== null) {
-//       event.category = category
-//       event.properties!.category = category
-//     }
-
-//     if (page !== null) {
-//       event.name = page
-//     }
-
-//     return this.normalize(
-//       {
-//         ...this.baseEvent(),
-//         ...event,
-//       } as SegmentEvent,
-//       pageCtx
+//     const ev = super.page(
+//       category,
+//       page,
+//       properties,
+//       options,
+//       globalIntegrations
 //     )
+//     addPageContext(ev, pageCtx)
+//     return ev
 //   }
 
-//   // screen(
-//   //   category: string | null,
-//   //   screen: string | null,
-//   //   properties?: EventProperties,
-//   //   options?: Options,
-//   //   globalIntegrations?: Integrations,
-//   //   pageCtx?: PageContext
-//   // ): SegmentEvent {
-//   //   const event: Partial<SegmentEvent> = {
-//   //     type: 'screen' as const,
-//   //     properties: { ...properties },
-//   //     options: { ...options },
-//   //     integrations: { ...globalIntegrations },
+//   override screen(
+//     category: string | null,
+//     screen: string | null,
+//     properties?: EventProperties,
+//     options?: Options,
+//     globalIntegrations?: Integrations,
+//     pageCtx?: PageContext
+//   ): SegmentEvent {
+//     const ev = super.screen(
+//       category,
+//       screen,
+//       properties,
+//       options,
+//       globalIntegrations
+//     )
+//     addPageContext(ev, pageCtx)
+//     return ev
+//   }
 
-//   // //   if (category !== null) {
-//   // //     event.category = category
-//   // //   }
+//   override identify(
+//     userId: ID,
+//     traits?: Traits,
+//     options?: Options,
+//     globalIntegrations?: Integrations,
+//     pageCtx?: PageContext
+//   ): SegmentEvent {
+//     const ev = super.identify(userId, traits, options, globalIntegrations)
+//     addPageContext(ev, pageCtx)
+//     return ev
+//   }
 
-//   //   }
+//   override group(
+//     groupId: ID,
+//     traits?: Traits,
+//     options?: Options,
+//     globalIntegrations?: Integrations,
+//     pageCtx?: PageContext
+//   ): SegmentEvent {
+//     const ev = super.group(groupId, traits, options, globalIntegrations)
+//     addPageContext(ev, pageCtx)
+//     return ev
+//   }
 
-//   //   if (category !== null) {
-//   //     event.category = category
-//   //   }
-
-//   //   if (screen !== null) {
-//   //     event.name = screen
-//   //   }
-//   //   return this.normalize(
-//   //     {
-//   //       ...this.baseEvent(),
-//   //       ...event,
-//   //     } as SegmentEvent,
-//   //     pageCtx
-//   //   )
-//   // }
-
-//   // identify(
-//   //   userId: ID,
-//   //   traits?: Traits,
-//   //   options?: Options,
-//   //   globalIntegrations?: Integrations,
-//   //   pageCtx?: PageContext
-//   // ): SegmentEvent {
-//   //   return this.normalize(
-//   //     {
-//   //       ...this.baseEvent(),
-//   //       type: 'identify' as const,
-//   //       userId,
-//   //       traits,
-//   //       options: { ...options },
-//   //       integrations: { ...globalIntegrations },
-//   //     },
-//   //     pageCtx
-//   //   )
-//   // }
-
-//   // group(
-//   //   groupId: ID,
-//   //   traits?: Traits,
-//   //   options?: Options,
-//   //   globalIntegrations?: Integrations,
-//   //   pageCtx?: PageContext
-//   // ): SegmentEvent {
-//   //   return this.normalize(
-//   //     {
-//   //       ...this.baseEvent(),
-//   //       type: 'group' as const,
-//   //       traits,
-//   //       options: { ...options },
-//   //       integrations: { ...globalIntegrations },
-//   //       groupId,
-//   //     },
-//   //     pageCtx
-//   //   )
-//   // }
-
-//   // alias(
-//   //   to: string,
-//   //   from: string | null,
-//   //   options?: Options,
-//   //   globalIntegrations?: Integrations,
-//   //   pageCtx?: PageContext
-//   // ): SegmentEvent {
-//   //   const base: Partial<SegmentEvent> = {
-//   //     userId: to,
-//   //     type: 'alias' as const,
-//   //     options: { ...options },
-//   //     integrations: { ...globalIntegrations },
-//   //   }
-
-//   //   if (from !== null) {
-//   //     base.previousId = from
-//   //   }
-
-//   //   if (to === undefined) {
-//   //     return this.normalize({
-//   //       ...base,
-//   //       ...this.baseEvent(),
-//   //     } as SegmentEvent)
-//   //   }
-
-//   //   return this.normalize(
-//   //     {
-//   //       ...this.baseEvent(),
-//   //       ...base,
-//   //     } as SegmentEvent,
-//   //     pageCtx
-//   //   )
-//   // }
+//   override alias(
+//     to: string,
+//     from: string | null,
+//     options?: Options,
+//     globalIntegrations?: Integrations,
+//     pageCtx?: PageContext
+//   ): SegmentEvent {
+//     const ev = super.alias(to, from, options, globalIntegrations)
+//     addPageContext(ev, pageCtx)
+//     return ev
 
 //   private baseEvent(): Partial<SegmentEvent> {
 //     const base: Partial<SegmentEvent> = {

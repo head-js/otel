@@ -1,7 +1,7 @@
 // // import type { Integrations } from '../../core/events/interfaces'
-// import { LegacySettings } from '../../browser'
+// import { CDNSettings } from '../../browser'
 import { /* JSONObject, */ JSONValue } from '../../core/events'
-import { /* DestinationPlugin, */ Plugin } from '../../core/plugin'
+import { Plugin /* , InternalPluginWithAddMiddleware */ } from '../../core/plugin'
 // import { loadScript } from '../../lib/load-script'
 // import { getCDN } from '../../lib/parse-cdn'
 // import {
@@ -9,7 +9,9 @@ import { /* DestinationPlugin, */ Plugin } from '../../core/plugin'
 //   DestinationMiddlewareFunction,
 // } from '../middleware'
 // import { Context, ContextCancelation } from '../../core/context'
-// import { Analytics } from '../../core/analytics'
+// // import { recordIntegrationMetric } from '../../core/stats/metric-helpers'
+// import { Analytics /*, InitOptions */ } from '../../core/analytics'
+// import { createDeferred } from '@segment/analytics-generic-utils'
 
 // export interface RemotePlugin {
 //   /** The name of the remote plugin */
@@ -24,12 +26,18 @@ import { /* DestinationPlugin, */ Plugin } from '../../core/plugin'
 //   settings: JSONObject
 // }
 
-// export class ActionDestination implements DestinationPlugin {
+// export class ActionDestination implements InternalPluginWithAddMiddleware {
 //   name: string // destination name
 //   version = '1.0.0'
+//   /**
+//    * The lifecycle name of the wrapped plugin.
+//    * This does not need to be 'destination', and can be 'enrichment', etc.
+//    */
 //   type: Plugin['type']
 
 //   alternativeNames: string[] = []
+
+//   private loadPromise = createDeferred<unknown>()
 
 //   middleware: DestinationMiddlewareFunction[] = []
 
@@ -43,6 +51,7 @@ import { /* DestinationPlugin, */ Plugin } from '../../core/plugin'
 //   }
 
 //   addMiddleware(...fn: DestinationMiddlewareFunction[]): void {
+//     /** Make sure we only apply destination filters to actions of the "destination" type to avoid causing issues for hybrid destinations */
 //     if (this.type === 'destination') {
 //       this.middleware.push(...fn)
 //     }
@@ -79,7 +88,29 @@ import { /* DestinationPlugin, */ Plugin } from '../../core/plugin'
 //         transformedContext = await this.transform(ctx)
 //       }
 
-//       await this.action[methodName]!(transformedContext)
+//       try {
+//         if (!(await this.ready())) {
+//           throw new Error(
+//             'Something prevented the destination from getting ready'
+//           )
+//         }
+
+//         // recordIntegrationMetric(ctx, {
+//         //   integrationName: this.action.name,
+//         //   methodName,
+//         //   type: 'action',
+//         // })
+
+//         await this.action[methodName]!(transformedContext)
+//       } catch (error) {
+//         // recordIntegrationMetric(ctx, {
+//         //   integrationName: this.action.name,
+//         //   methodName,
+//         //   type: 'action',
+//         //   didError: true,
+//         // })
+//         throw error
+//       }
 
 //       return ctx
 //     }
@@ -97,12 +128,42 @@ import { /* DestinationPlugin, */ Plugin } from '../../core/plugin'
 //     return this.action.isLoaded()
 //   }
 
-//   ready(): Promise<unknown> {
-//     return this.action.ready ? this.action.ready() : Promise.resolve()
+//   async ready(): Promise<boolean> {
+//     try {
+//       await this.loadPromise.promise
+//       return true
+//     } catch {
+//       return false
+//     }
 //   }
 
-//   load(ctx: Context, analytics: Analytics): Promise<unknown> {
-//     return this.action.load(ctx, analytics)
+//   async load(ctx: Context, analytics: Analytics): Promise<unknown> {
+//     if (this.loadPromise.isSettled()) {
+//       return this.loadPromise.promise
+//     }
+
+//     try {
+//       // recordIntegrationMetric(ctx, {
+//       //   integrationName: this.action.name,
+//       //   methodName: 'load',
+//       //   type: 'action',
+//       // })
+
+//       const loadP = this.action.load(ctx, analytics)
+
+//       this.loadPromise.resolve(await loadP)
+//       return loadP
+//     } catch (error) {
+//       // recordIntegrationMetric(ctx, {
+//       //   integrationName: this.action.name,
+//       //   methodName: 'load',
+//       //   type: 'action',
+//       //   didError: true,
+//       // })
+
+//       this.loadPromise.reject(error)
+//       throw error
+//     }
 //   }
 
 //   unload(ctx: Context, analytics: Analytics): Promise<unknown> | unknown {
@@ -164,47 +225,49 @@ export type PluginFactory = {
 //   remotePlugin: RemotePlugin,
 //   // obfuscate?: boolean
 // ): Promise<void | PluginFactory> {
-//   const defaultCdn = new RegExp('https://cdn.segment.(com|build)')
-//   const cdn = getCDN()
+//   try {
+//     const defaultCdn = new RegExp('https://cdn.segment.(com|build)')
+//     const cdn = getCDN()
 
-//   // if (obfuscate) {
-//   //   const urlSplit = remotePlugin.url.split('/')
-//   //   const name = urlSplit[urlSplit.length - 2]
-//   //   const obfuscatedURL = remotePlugin.url.replace(
-//   //     name,
-//   //     btoa(name).replace(/=/g, '')
-//   //   )
-//   //   try {
-//   //     await loadScript(obfuscatedURL.replace(defaultCdn, cdn))
-//   //   } catch (error) {
-//   //     // Due to syncing concerns it is possible that the obfuscated action destination (or requested version) might not exist.
-//   //     // We should use the unobfuscated version as a fallback.
-//   //     await loadScript(remotePlugin.url.replace(defaultCdn, cdn))
+//   //   if (obfuscate) {
+//   //     const urlSplit = remotePlugin.url.split('/')
+//   //     const name = urlSplit[urlSplit.length - 2]
+//   //     const obfuscatedURL = remotePlugin.url.replace(
+//   //       name,
+//   //       btoa(name).replace(/=/g, '')
+//   //     )
+//   //     try {
+//   //       await loadScript(obfuscatedURL.replace(defaultCdn, cdn))
+//   //     } catch (error) {
+//   //       // Due to syncing concerns it is possible that the obfuscated action destination (or requested version) might not exist.
+//   //       // We should use the unobfuscated version as a fallback.
+//   //       await loadScript(remotePlugin.url.replace(defaultCdn, cdn))
+//   //     }
+//   //   } else {
+//       await loadScript(remotePlugin.url.replace(defaultCdn, cdn))
 //   //   }
-//   // } else {
-//     await loadScript(remotePlugin.url.replace(defaultCdn, cdn))
-//   // }
 
-//   // @ts-expect-error
-//   if (typeof window[remotePlugin.libraryName] === 'function') {
 //     // @ts-expect-error
-//     return window[remotePlugin.libraryName] as PluginFactory
+//     if (typeof window[remotePlugin.libraryName] === 'function') {
+//       // @ts-expect-error
+//       return window[remotePlugin.libraryName] as PluginFactory
+//     }
+//   } catch (err) {
+//     console.error('Failed to create PluginFactory', remotePlugin)
+//     throw err
 //   }
 // }
 
 // export async function remoteLoader(
-//   // @ts-ignore
-//   analytics: Analytics,
-//   settings: LegacySettings,
+//   settings: CDNSettings,
 //   // userIntegrations: Integrations,
 //   // @ts-ignore
 //   mergedIntegrations: Record<string, JSONObject>,
-//   // obfuscate?: boolean,
+//   // options?: InitOptions,
 //   routingMiddleware?: DestinationMiddlewareFunction,
 //   // pluginSources?: PluginFactory[]
 // ): Promise<Plugin[]> {
 //   const allPlugins: Plugin[] = []
-//   const cdn = getCDN()
 
 //   const routingRules = settings.middlewareSettings?.routingRules ?? []
 
@@ -212,22 +275,12 @@ export type PluginFactory = {
 //     async (remotePlugin) => {
 //       // if (isPluginDisabled(userIntegrations, remotePlugin)) return
 
-//       if (!remotePlugin.creationName) {
-//         remotePlugin.creationName = `AnalyticsPlugin${remotePlugin.name}`;
-//       }
-//       if (!remotePlugin.libraryName) {
-//         remotePlugin.libraryName = `AnalyticsPlugin${remotePlugin.name}`;
-//       }
-//       if (!remotePlugin.url) {
-//         remotePlugin.url = `${cdn}analytics-plugin-${remotePlugin.name.toLocaleLowerCase()}.js`;
-//       }
-
 //       try {
 //         const pluginFactory =
 //           // pluginSources?.find(
 //           //   ({ pluginName }) => pluginName === remotePlugin.name
-//           // ) || (await loadPluginFactory(remotePlugin, obfuscate))
-//           await loadPluginFactory(remotePlugin)
+//           // ) || (await loadPluginFactory(remotePlugin, options?.obfuscate))
+//         await loadPluginFactory(remotePlugin)
 
 //         if (pluginFactory) {
 //           // console.log(pluginFactory);
@@ -249,12 +302,7 @@ export type PluginFactory = {
 //               plugin
 //             )
 
-//             /** Make sure we only apply destination filters to actions of the "destination" type to avoid causing issues for hybrid destinations */
-//             if (
-//               routing.length &&
-//               routingMiddleware &&
-//               plugin.type === 'destination'
-//             ) {
+//             if (routing.length && routingMiddleware) {
 //               wrapper.addMiddleware(routingMiddleware)
 //             }
 

@@ -10,10 +10,11 @@
 // //   resolveUserArguments,
 // //   IdentifyParams,
 // } from '../arguments-resolver'
-// // import type { FormArgs, LinkArgs } from '../auto-track'
+// import type { FormArgs, LinkArgs } from '../auto-track'
 // import { isOffline } from '../connection'
 // import { Context } from '../context'
-// import { dispatch, Emitter } from '@segment/analytics-core'
+import { /* dispatch, */ JSONValue } from '../../../core/events/interfaces'
+// import { Emitter } from '@segment/analytics-generic-utils'
 // import {
 //   Callback,
 //   EventFactory,
@@ -22,35 +23,31 @@
 //   EventProperties,
 //   SegmentEvent,
 // } from '../events'
-import type { Plugin } from '../plugin'
+import { /* isDestinationPluginWithAddMiddleware, */ Plugin } from '../plugin'
 // import { EventQueue } from '../queue/event-queue'
-import { /* Group, ID, */ User /* , UserOptions */ } from '../user'
+import { /* Group, */ ID, User, UserOptions } from '../user'
 // import autoBind from '../../lib/bind-all'
 // import { PersistedPriorityQueue } from '../../lib/priority-queue/persisted'
-// // import type { LegacyDestination } from '../../plugins/ajs-destination'
-// // import type {
-// //   LegacyIntegration,
-// //   ClassicIntegrationSource,
-// // } from '../../plugins/ajs-destination/types'
+// import type { LegacyIntegration } from '../../plugins/ajs-destination/types'
 // import type {
-// //   DestinationMiddlewareFunction,
+//   // DestinationMiddlewareFunction,
 //   MiddlewareFunction,
 // } from '../../plugins/middleware'
-// // import { version } from '../../generated/version'
+// import { version } from '../../generated/version'
 // import { PriorityQueue } from '../../lib/priority-queue'
-// // import { getGlobal } from '../../lib/get-global'
+// import { getGlobal } from '../../lib/get-global'
 import { AnalyticsClassic, AnalyticsCore } from './interfaces'
 // import { HighEntropyHint } from '../../lib/client-hints/interfaces'
-// import type { LegacySettings } from '../../browser'
+import type { CDNSettings } from '../../browser'
 // import {
 //   CookieOptions,
 //   MemoryStorage,
 //   UniversalStorage,
 //   StorageSettings,
 //   StoreType,
-//   applyCookieOptions,
+//   // applyCookieOptions,
 //   initializeStorages,
-//   isArrayOfStoreType,
+//   // isArrayOfStoreType,
 // } from '../storage'
 import { PluginFactory } from '../../plugins/remote-loader'
 // import { setGlobalAnalytics } from '../../lib/global-analytics-helper'
@@ -68,19 +65,51 @@ import { PluginFactory } from '../../plugins/remote-loader'
 //   retryQueue = false,
 //   disablePersistance = false
 // ) {
-//   const maxAttempts = retryQueue ? 4 : 1
+//   const maxAttempts = retryQueue ? 10 : 1
 //   const priorityQueue = disablePersistance
 //     ? new PriorityQueue(maxAttempts, [])
 //     : new PersistedPriorityQueue(maxAttempts, name)
 //   return new EventQueue(priorityQueue)
 // }
 
+/**
+ * The public settings that are set on the analytics instance
+ */
+export class AnalyticsInstanceSettings {
+  readonly writeKey: string
+  /**
+   * This is an unstable API, it may change in the future without warning.
+   */
+  readonly cdnSettings: CDNSettings
+  readonly cdnURL?: string
+
+  /**
+   * Auto-track specific timeout setting for legacy purposes.
+   */
+  timeout = 300
+
+  constructor(settings: AnalyticsSettings) {
+    this.writeKey = settings.writeKey
+    this.cdnSettings = settings.cdnSettings ?? {
+      integrations: {},
+      // edgeFunction: {},
+    }
+    this.cdnURL = settings.cdnURL
+  }
+}
+
+/**
+ * The settings that are used to configure the analytics instance
+ */
 export interface AnalyticsSettings {
   writeKey: string
-  timeout?: number
+  cdnSettings?: CDNSettings
+  cdnURL?: string
+  // FIXME:
   plugins?: (Plugin | PluginFactory)[]
-  // classicIntegrations?: ClassicIntegrationSource[]
-  app: JSON
+  // @head/o11y, uniOptions
+  app?: JSONValue,
+  rum?: JSONValue,
 }
 
 // export interface InitOptions {
@@ -110,7 +139,7 @@ export interface AnalyticsSettings {
 //    * This callback allows you to update/mutate CDN Settings.
 //    * This is called directly after settings are fetched from the CDN.
 //    */
-//   updateCDNSettings?: (settings: LegacySettings) => LegacySettings
+//   updateCDNSettings?: (settings: CDNSettings) => CDNSettings
 //   /**
 //    * Disables or sets constraints on processing of query string parameters
 //    */
@@ -129,6 +158,22 @@ export interface AnalyticsSettings {
 //    * default: analytics
 //    */
 //   globalAnalyticsKey?: string
+
+//   /**
+//    * Disable sending any data to Segment's servers. All emitted events and API calls (including .ready()), will be no-ops, and no cookies or localstorage will be used.
+//    *
+//    * @example
+//    * ### Basic (Will not not fetch any CDN settings)
+//    * ```ts
+//    * disable: process.env.NODE_ENV === 'test'
+//    * ```
+//    *
+//    * ### Advanced (Fetches CDN Settings. Do not use this unless you require CDN settings for some reason)
+//    * ```ts
+//    * disable: (cdnSettings) => cdnSettings.foo === 'bar'
+//    * ```
+//    */
+//   disable?: boolean | ((cdnSettings: CDNSettings) => boolean | Promise<boolean>)
 // }
 
 // /* analytics-classic stubs */
@@ -162,8 +207,7 @@ export class Analytics
     // super()
     // const cookieOptions = options?.cookie
     // const disablePersistance = options?.disableClientPersistence ?? false
-    this.settings = settings
-    this.settings.timeout = this.settings.timeout ?? 300
+    this.settings = new AnalyticsInstanceSettings(settings)
     // this.queue =
     //   // queue ??
     //   createDefaultQueue(
@@ -217,33 +261,35 @@ export class Analytics
    */
   // private createStore(
   //   disablePersistance: boolean,
+  //   // @ts-ignore unused
   //   storageSetting: InitOptions['storage'],
+  //   // @ts-ignore unused
   //   cookieOptions?: CookieOptions | undefined
   // ): UniversalStorage {
   //   // DisablePersistance option overrides all, no storage will be used outside of memory even if specified
   //   if (disablePersistance) {
   //     return new UniversalStorage([new MemoryStorage()])
   //   } else {
-  //     if (storageSetting) {
-  //       if (isArrayOfStoreType(storageSetting)) {
-  //         // We will create the store with the priority for customer settings
-  //         return new UniversalStorage(
-  //           initializeStorages(
-  //             applyCookieOptions(storageSetting.stores, cookieOptions)
-  //           )
-  //         )
-  //       }
-  //     }
+  //     // if (storageSetting) {
+  //     //   if (isArrayOfStoreType(storageSetting)) {
+  //     //     // We will create the store with the priority for customer settings
+  //     //     return new UniversalStorage(
+  //     //       initializeStorages(
+  //     //         applyCookieOptions(storageSetting.stores, cookieOptions)
+  //     //       )
+  //     //     )
+  //     //   }
+  //     // }
   //   }
   //   // We default to our multi storage with priority
   //   return new UniversalStorage(
   //     initializeStorages([
   //       StoreType.LocalStorage,
-  //       {
-  //         name: StoreType.Cookie,
-  //         settings: cookieOptions,
-  //       },
-  //       StoreType.Memory,
+  //       // {
+  //       //   name: StoreType.Cookie,
+  //       //   settings: cookieOptions,
+  //       // },
+  //       // StoreType.Memory,
   //     ])
   //   )
   // }
@@ -506,13 +552,17 @@ export class Analytics
 //     integrationName: string,
 //     ...middlewares: DestinationMiddlewareFunction[]
 //   ): Promise<Analytics> {
-//     const legacyDestinations = this.queue.plugins.filter(
-//       (xt) => xt.name.toLowerCase() === integrationName.toLowerCase()
-//     ) as LegacyDestination[]
-//
-//     legacyDestinations.forEach((destination) => {
-//       destination.addMiddleware(...middlewares)
-//     })
+//     this.queue.plugins
+//       .filter(isDestinationPluginWithAddMiddleware)
+//       .forEach((p) => {
+//         if (
+//           integrationName === '*' ||
+//           p.name.toLowerCase() === integrationName.toLowerCase()
+//         ) {
+//           p.addMiddleware(...middlewares)
+//         }
+//       })
+
 //     return Promise.resolve(this)
 //   }
 
@@ -563,10 +613,10 @@ export class Analytics
   //   return this
   // }
 
-//   normalize(msg: SegmentEvent): SegmentEvent {
-//     console.warn(deprecationWarning)
-//     return this.eventFactory.normalize(msg)
-//   }
+  // normalize(msg: SegmentEvent): SegmentEvent {
+  //   console.warn(deprecationWarning)
+  //   return this.eventFactory['normalize'](msg)
+  // }
 
 //   get failedInitializations(): string[] {
 //     console.warn(deprecationWarning)
@@ -656,3 +706,13 @@ export class Analytics
 //     an[method].apply(this, args)
 //   }
 }
+
+/**
+ * @returns a no-op analytics instance that does not create cookies or localstorage, or send any events to segment.
+ */
+// export class NullAnalytics extends Analytics {
+//   constructor() {
+//     super({ writeKey: '' }, { disableClientPersistence: true })
+//     this.initialized = true
+//   }
+// }
