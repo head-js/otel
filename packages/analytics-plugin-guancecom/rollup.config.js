@@ -50,4 +50,44 @@ export default [
       { file: '.dist/analytics-plugin-guancecom.js', format: 'iife', name: 'AnalyticsPluginGuancecom' },
     ],
   },
+  {
+    input: 'src/pv.ts',
+
+    external: [
+    ],
+
+    plugins: [
+      // eslint(),
+
+      // json(),
+
+      resolve({
+        browser: true,
+      }),
+
+      commonjs({
+        sourceMap: false,
+      }),
+
+      typescript(),
+
+      // babel({
+      //   exclude: 'node_modules/**',
+      //   babelHelpers: 'bundled',
+      // }),
+
+      terser({
+        compress: false,
+        mangle: false,
+        format: {
+          max_line_len: 120,
+          preamble: '/* @head.js/analytics-pv 0.0.1 */',
+        }
+      }),
+    ],
+
+    output: [
+      { file: '.dist/pv.js', format: 'iife', strict: false, exports: 'none' },
+    ],
+  },
 ];
