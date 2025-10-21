@@ -1,4 +1,4 @@
-import { datadogRum } from '@datadog/browser-rum';
+import { datadogRum } from '@datadog/browser-rum-slim';
 
 
 export default function datadog(

@@ -1,6 +1,6 @@
 {
   "name": "@head-js-o11y/analytics-plugin-datadogcom",
-  "version": "5.35.0-1",
+  "version": "5.35.0-2",
   "description": "",
   "main": "index.js",
   "type": "module",
@@ -14,7 +14,8 @@
     "@datadog/browser-core": "5.35.0",
     "@datadog/browser-logs": "5.35.0",
     "@datadog/browser-rum": "5.35.0",
-    "@datadog/browser-rum-core": "5.35.0"
+    "@datadog/browser-rum-core": "5.35.0",
+    "@datadog/browser-rum-slim": "5.35.0"
   },
   "devDependencies": {
     "@babel/core": "7.24.9",
