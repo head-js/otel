@@ -1,6 +1,6 @@
 {
-  "name": "@head-js-o11y/analytics-plugin-guancecom",
-  "version": "3.2.24-3",
+  "name": "@head-js-otel/analytics-plugin-guancecom",
+  "version": "3.2.24-7",
   "description": "",
   "main": "index.js",
   "type": "module",
